@@ -10,9 +10,9 @@ import (
 	"os"
 )
 
-func parseUri(uri string) error {
-	_, err := url.ParseRequestURI(uri)
-	return err
+func parseUri(uri string) (*url.URL, error) {
+	parsedUri, err := url.ParseRequestURI(uri)
+	return parsedUri, err
 }
 
 func getFeed(uri string) (*http.Response, error) {
@@ -36,30 +36,35 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		uri := scanner.Text()
-		err := parseUri(uri)
+		parsedUri, err := parseUri(uri)
 		if err != nil {
-			fmt.Printf("%s %s.\n", "ERROR: Could not parse uri", uri)
+			fmt.Printf("ERROR: Could not parse uri %s.\n", uri)
 			continue
 		}
 
 		res, err := getFeed(uri)
 		if err != nil {
-			fmt.Printf("%s %s.\n", "ERROR: Could not GET", uri)
+			fmt.Printf("ERROR: Could not GET %s.\n", uri)
 			continue
 		}
 
 		body, err := readBody(res)
 		if err != nil {
-			fmt.Printf("%s %s.\n", "ERROR: Could not read body for", uri)
+			fmt.Printf("ERROR: Could not read body for %s.\n", uri)
 			continue
 		}
 
 		feed, err := parseRssFeed(body)
 		if err != nil {
-			fmt.Printf("%s %s.\n", "ERROR: Could not parse RSS feed for", uri)
+			fmt.Printf("ERROR: Could not parse RSS feed for %s.\n", uri)
 			continue
 		}
 
-		fmt.Println(feed.Title)
+		if _, err := os.Stat("./feeds/" + parsedUri.Host + ".txt"); err != nil {
+			fmt.Printf("Creating file: %s.txt\n", parsedUri.Host)
+		} else {
+			fmt.Printf("Adding feeds to: %s.txt\n", parsedUri.Host)
+			fmt.Printf("%s\n", feed.Title)
+		}
 	}
 }
