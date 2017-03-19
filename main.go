@@ -26,6 +26,22 @@ func readBody(res *http.Response) ([]byte, error) {
 	return body, err
 }
 
+func saveFeed(file *os.File, filename string, feed Rss) {
+	fmt.Printf("Adding feeds to: %s.txt\n", filename)
+	fmt.Printf("%s\n", feed.Title)
+
+	writer := bufio.NewWriter(file)
+	for _, item := range feed.ItemList {
+		content := item.Title + "\n" + item.PubDate + "\n" + fmt.Sprint(item.Description) + "\n\n"
+		_, err := writer.WriteString(content)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	writer.Flush()
+}
+
 func main() {
 	file, err := os.Open("./sources.txt")
 	if err != nil {
@@ -62,9 +78,10 @@ func main() {
 
 		if _, err := os.Stat("./feeds/" + parsedUri.Host + ".txt"); err != nil {
 			fmt.Printf("Creating file: %s.txt\n", parsedUri.Host)
-		} else {
-			fmt.Printf("Adding feeds to: %s.txt\n", parsedUri.Host)
-			fmt.Printf("%s\n", feed.Title)
+			_, err = os.Create(parsedUri.Host)
 		}
+
+		file, err := os.Open(parsedUri.Host + ".txt")
+		saveFeed(file, parsedUri.Host+".txt", feed)
 	}
 }
