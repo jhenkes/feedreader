@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"encoding/xml"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,63 +10,20 @@ import (
 	"os"
 )
 
-type Rss struct {
-	XMLName       xml.Name `xml:"rss"`
-	Version       string   `xml:"version,attr"`
-	Title         string   `xml:"channel>title"`
-	Link          string   `xml:"channel>link"`
-	Description   string   `xml:"channel>description"`
-	LastBuildDate string   `xml:"channel>lastBuildDate"`
-	ItemList      []Item   `xml:"channel>item"`
-}
-
-type Item struct {
-	Title       string        `xml:"title"`
-	Link        string        `xml:"link"`
-	Description template.HTML `xml:"description"`
-	PubDate     string        `xml:"pubDate"`
-}
-
 func parseUri(uri string) error {
 	_, err := url.ParseRequestURI(uri)
-	if err != nil {
-		fmt.Println("ERROR: Could not parse", uri)
-		return err
-	}
-	return nil
+	return err
 }
 
-func getFeed(uri string) error {
+func getFeed(uri string) (*http.Response, error) {
 	res, err := http.Get(uri)
-	if err != nil {
-		fmt.Println("ERROR: Could not GET", uri)
-		fmt.Println("ERROR: Status:", res.Status)
-		return err
-	}
-	readBody(res)
-	return nil
+	return res, err
 }
 
-func readBody(res *http.Response) error {
+func readBody(res *http.Response) ([]byte, error) {
 	body, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
-	if err != nil {
-		fmt.Println("ERROR: Could not read body.")
-		return err
-	}
-	parseRssFeed(body)
-	return nil
-}
-
-func parseRssFeed(content []byte) error {
-	feed := Rss{}
-	err := xml.Unmarshal(content, &feed)
-	if err != nil {
-		fmt.Println("ERROR: Could not parse RSS feed.")
-		return err
-	}
-	fmt.Println(feed)
-	return nil
+	return body, err
 }
 
 func main() {
@@ -83,8 +38,29 @@ func main() {
 		uri := scanner.Text()
 		err := parseUri(uri)
 		if err != nil {
+			fmt.Println("ERROR: Could not parse", uri)
 			continue
 		}
-		getFeed(uri)
+
+		res, err := getFeed(uri)
+		if err != nil {
+			fmt.Println("ERROR: Could not GET", uri)
+			fmt.Println("ERROR: Status:", res.Status)
+			continue
+		}
+
+		body, err := readBody(res)
+		if err != nil {
+			fmt.Println("ERROR: Could not read body.")
+			continue
+		}
+
+		feed, err := parseRssFeed(body)
+		if err != nil {
+			fmt.Println("ERROR: Could not parse RSS feed.")
+			continue
+		}
+
+		fmt.Println(feed.Title)
 	}
 }
