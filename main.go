@@ -38,26 +38,25 @@ func main() {
 		uri := scanner.Text()
 		err := parseUri(uri)
 		if err != nil {
-			fmt.Println("ERROR: Could not parse", uri)
+			fmt.Printf("%s %s.\n", "ERROR: Could not parse uri", uri)
 			continue
 		}
 
 		res, err := getFeed(uri)
 		if err != nil {
-			fmt.Println("ERROR: Could not GET", uri)
-			fmt.Println("ERROR: Status:", res.Status)
+			fmt.Printf("%s %s.\n", "ERROR: Could not GET", uri)
 			continue
 		}
 
 		body, err := readBody(res)
 		if err != nil {
-			fmt.Println("ERROR: Could not read body.")
+			fmt.Printf("%s %s.\n", "ERROR: Could not read body for", uri)
 			continue
 		}
 
 		feed, err := parseRssFeed(body)
 		if err != nil {
-			fmt.Println("ERROR: Could not parse RSS feed.")
+			fmt.Printf("%s %s.\n", "ERROR: Could not parse RSS feed for", uri)
 			continue
 		}
 
